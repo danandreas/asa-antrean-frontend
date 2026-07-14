@@ -1,0 +1,86 @@
+@import "tailwindcss";
+
+:root {
+  --color-bg: #ffffff;
+  --color-primary: #1e104e;
+  --color-primary-soft: #382570;
+  --color-accent: #ff653f;
+  --color-accent-soft: #ffe3da;
+  --color-surface: #f7f5fb;
+  --color-muted: #8b86a3;
+  --color-success: #16a34a;
+  --color-success-soft: #dcfce7;
+  --color-danger: #dc2626;
+  --color-danger-soft: #fee2e2;
+  --color-border: rgba(30, 16, 78, 0.08);
+
+  --font-display: "Geomini", "Plus Jakarta Sans", system-ui, sans-serif;
+  --font-body: "Plus Jakarta Sans", system-ui, sans-serif;
+}
+
+@theme inline {
+  --color-bg: var(--color-bg);
+  --color-primary: var(--color-primary);
+  --color-primary-soft: var(--color-primary-soft);
+  --color-accent: var(--color-accent);
+  --color-accent-soft: var(--color-accent-soft);
+  --color-surface: var(--color-surface);
+  --color-muted: var(--color-muted);
+  --color-success: var(--color-success);
+  --color-success-soft: var(--color-success-soft);
+  --color-danger: var(--color-danger);
+  --color-danger-soft: var(--color-danger-soft);
+  --color-border: var(--color-border);
+  --font-display: var(--font-display);
+  --font-body: var(--font-body);
+}
+
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+html,
+body {
+  background: var(--color-bg);
+  color: var(--color-primary);
+  font-family: var(--font-body);
+  overscroll-behavior-y: none;
+}
+
+h1, h2, h3, h4, .font-display {
+  font-family: var(--font-display);
+  letter-spacing: -0.01em;
+}
+
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 999px;
+}
+
+/* Kartu tiket antrean dengan tepi perforasi -- signature element */
+.ticket-stub {
+  position: relative;
+  background: #ffffff;
+  border-radius: 20px;
+  -webkit-mask-image: radial-gradient(circle 7px at 0px var(--stub-notch, 78px), transparent 7px, black 7.5px),
+    radial-gradient(circle 7px at 100% var(--stub-notch, 78px), transparent 7px, black 7.5px);
+  -webkit-mask-composite: source-in;
+  mask-image: radial-gradient(circle 7px at 0px var(--stub-notch, 78px), transparent 7px, black 7.5px),
+    radial-gradient(circle 7px at 100% var(--stub-notch, 78px), transparent 7px, black 7.5px);
+  mask-composite: intersect;
+}
+
+.ticket-stub-divider {
+  border-top: 1.5px dashed var(--color-border);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
