@@ -8,7 +8,6 @@ import {
   isFirebaseConfigured,
 } from "@/lib/firebase";
 import { getToken, onMessage } from "firebase/messaging";
-import error from "next/dist/api/error";
 import { useEffect } from "react";
 
 const FCM_TOKEN_STORAGE_KEY = "pq_fcm_token";
@@ -28,25 +27,51 @@ export function useFcmRegistration(enabled: boolean) {
     let isCancelled = false;
 
     async function register() {
+      console.log("[FCM] Mulai proses registrasi...");
+
+      if (typeof window === "undefined" || !("Notification" in window)) {
+        console.warn("[FCM] Browser tidak mendukung Notification API.");
+        return;
+      }
+
+      console.log("[FCM] Status izin saat ini:", Notification.permission);
+
       try {
         const permission =
           Notification.permission === "default"
             ? await Notification.requestPermission()
             : Notification.permission;
 
-        if (permission !== "granted") return;
+        console.log("[FCM] Hasil izin:", permission);
 
+        if (permission !== "granted") {
+          console.warn("[FCM] Izin tidak diberikan, berhenti di sini.");
+          return;
+        }
+
+        console.log("[FCM] Mendaftarkan service worker...");
         const registration = await navigator.serviceWorker.register(
           buildServiceWorkerUrl(),
         );
+        console.log("[FCM] Service worker terdaftar:", registration);
 
         const messaging = await getMessagingInstance();
-        if (!messaging || isCancelled) return;
+        console.log("[FCM] Messaging instance:", messaging);
+        if (!messaging || isCancelled) {
+          console.warn("[FCM] Messaging instance null, berhenti di sini.");
+          return;
+        }
 
+        console.log(
+          "[FCM] Meminta token, VAPID key ada?:",
+          Boolean(process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY),
+        );
         const token = await getToken(messaging, {
           vapidKey: process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY,
           serviceWorkerRegistration: registration,
         });
+
+        console.log("[FCM] Token didapat:", token);
 
         if (!token || isCancelled) return;
 
@@ -54,20 +79,25 @@ export function useFcmRegistration(enabled: boolean) {
           FCM_TOKEN_STORAGE_KEY,
         );
         if (previousToken !== token) {
+          console.log("[FCM] Mengirim token ke backend...");
           await api.post("/device-tokens", { token, platform: "web" });
+          console.log("[FCM] Token berhasil dikirim ke backend.");
           window.localStorage.setItem(FCM_TOKEN_STORAGE_KEY, token);
+        } else {
+          console.log(
+            "[FCM] Token sama seperti sebelumnya, tidak dikirim ulang.",
+          );
         }
 
         unsubscribeOnMessage = onMessage(messaging, (payload) => {
+          console.log("[FCM] Pesan diterima (foreground):", payload);
           showPersistentQueueAlert(
             payload.notification?.title || "Antrean Anda Segera Tiba",
             payload.notification?.body || "",
           );
         });
-      } catch {
-        // Diamkan: perangkat/browser mungkin tidak mendukung push, atau izin ditolak.
-        // Aplikasi tetap berfungsi normal tanpa notifikasi real-time.
-        console.error("FCM registration gagal:", error);
+      } catch (error) {
+        console.error("[FCM] Error saat registrasi:", error);
       }
     }
 
