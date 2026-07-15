@@ -1,21 +1,27 @@
 "use client";
 
-import { useEffect } from "react";
-import { getToken, onMessage } from "firebase/messaging";
+import { showPersistentQueueAlert } from "@/components/PersistentQueueAlert";
+import { api } from "@/lib/api";
 import {
+  buildServiceWorkerUrl,
   getMessagingInstance,
   isFirebaseConfigured,
-  buildServiceWorkerUrl,
 } from "@/lib/firebase";
-import { api } from "@/lib/api";
-import { showPersistentQueueAlert } from "@/components/PersistentQueueAlert";
+import { getToken, onMessage } from "firebase/messaging";
+import error from "next/dist/api/error";
+import { useEffect } from "react";
 
 const FCM_TOKEN_STORAGE_KEY = "pq_fcm_token";
 
 export function useFcmRegistration(enabled: boolean) {
   useEffect(() => {
     if (!enabled) return;
-    if (!isFirebaseConfigured()) return;
+    if (!isFirebaseConfigured()) {
+      console.warn(
+        "Firebase belum terkonfigurasi — cek NEXT_PUBLIC_FIREBASE_* di Vercel.",
+      );
+      return;
+    }
     if (typeof window === "undefined" || !("Notification" in window)) return;
 
     let unsubscribeOnMessage: (() => void) | undefined;
@@ -31,7 +37,7 @@ export function useFcmRegistration(enabled: boolean) {
         if (permission !== "granted") return;
 
         const registration = await navigator.serviceWorker.register(
-          buildServiceWorkerUrl()
+          buildServiceWorkerUrl(),
         );
 
         const messaging = await getMessagingInstance();
@@ -44,7 +50,9 @@ export function useFcmRegistration(enabled: boolean) {
 
         if (!token || isCancelled) return;
 
-        const previousToken = window.localStorage.getItem(FCM_TOKEN_STORAGE_KEY);
+        const previousToken = window.localStorage.getItem(
+          FCM_TOKEN_STORAGE_KEY,
+        );
         if (previousToken !== token) {
           await api.post("/device-tokens", { token, platform: "web" });
           window.localStorage.setItem(FCM_TOKEN_STORAGE_KEY, token);
@@ -53,12 +61,13 @@ export function useFcmRegistration(enabled: boolean) {
         unsubscribeOnMessage = onMessage(messaging, (payload) => {
           showPersistentQueueAlert(
             payload.notification?.title || "Antrean Anda Segera Tiba",
-            payload.notification?.body || ""
+            payload.notification?.body || "",
           );
         });
       } catch {
         // Diamkan: perangkat/browser mungkin tidak mendukung push, atau izin ditolak.
         // Aplikasi tetap berfungsi normal tanpa notifikasi real-time.
+        console.error("FCM registration gagal:", error);
       }
     }
 
